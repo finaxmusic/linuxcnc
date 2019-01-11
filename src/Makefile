@@ -915,6 +915,10 @@ hal_lib-objs := hal/hal_lib.o $(MATHSTUB)
 obj-m += trivkins.o
 trivkins-objs := emc/kinematics/trivkins.o
 
+obj-m += trivkinsplus.o
+trivkinsplus-objs := emc/kinematics/trivkinsplus.o
+trivkinsplus-objs += emc/kinematics/extrajoints.o
+
 obj-m += 5axiskins.o
 5axiskins-objs := emc/kinematics/5axiskins.o
 
@@ -1028,6 +1032,10 @@ $(sort $(RTOBJS)) : objects/rt%.o : %.c
 	$(Q)$(CC) -c -DRTAPI -nostdinc -isystem $(shell $(CC) -print-file-name=include) -I$(KERNELDIR)/include $(EXTRA_CFLAGS) \
 		-MP -MD -MF "${@:.o=.d}" -MT "$@" \
 		$< -o $@
+
+# add additional prerequisites for kins modules using extrajoints.c
+trivkinsplus.o : extrajoints.o
+
 endif
 
 ifneq "$(filter normal uspace,$(BUILD_SYS))" ""
@@ -1073,6 +1081,7 @@ endif
 ../rtlib/hal_lib$(MODULE_EXT): $(addprefix objects/rt,$(hal_lib-objs))
 ../rtlib/motmod$(MODULE_EXT): $(addprefix objects/rt,$(motmod-objs))
 ../rtlib/trivkins$(MODULE_EXT): $(addprefix objects/rt,$(trivkins-objs))
+../rtlib/trivkinsplus$(MODULE_EXT): $(addprefix objects/rt,$(trivkinsplus-objs))
 ../rtlib/5axiskins$(MODULE_EXT): $(addprefix objects/rt,$(5axiskins-objs))
 ../rtlib/maxkins$(MODULE_EXT): $(addprefix objects/rt,$(maxkins-objs))
 ../rtlib/rotatekins$(MODULE_EXT): $(addprefix objects/rt,$(rotatekins-objs))

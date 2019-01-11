@@ -10,6 +10,8 @@ kins \- kinematics definitions for LinuxCNC
 .SH SYNOPSIS
 .B loadrt trivkins (use for most cartesian machines)
 .PP
+.B loadrt trivkinsplus (trivkins with 'extra' joints)
+.PP
 .B loadrt corexykins
 .PP
 .B loadrt genhexkins
@@ -139,11 +141,60 @@ machine is still in \fBjoint mode\fR.  The joint selected will depend upon
 the gui implementation but typically only one of the multiple
 joints in the set will jog.  Consequently, specifying KINEMATICS_BOTH
 is recommended as it enables support for unambiguous, independent
-jogging of each individual joint.  
+jogging of each individual joint.
 Machines that implement homing for all joints (including the provisions
 for synchronizing the final homing move for multiple joints) may be homed
 at machine startup and automatically switch to \fBworld\fR mode where
 per-coordinate jogging is available.
+
+.SS trivkinsplus \- trivkins with support for 'extra' joints
+The module parameters replicate the trivkins parameters for
+\fBcoordinates=\fR and \fBkinstype=\fR.  An additional parameter
+\fBextrajoints=\fR sets the number of 'extra joints'.
+
+If \fBextrajoints=\fR is non-zero, the \fBcoordinates=\fR setting must be included.
+
+If \fBextrajoints=\fR is non-zero, \fBnon-identity kinematics are used\fR (KINEMATICS_BOTH)
+
+The ini file setting \fB[KINS]JOINTS=\fR must be the \fBtotal\fR number of
+joints (the number of normal joints used for kinematics plus the number of
+extra joints).
+
+Ini file examples:
+   [KINS]
+   JOINTS     = 4
+   KINEMATICS = trivkinsplus coordinates=XYZ extrajoints=1
+
+   [KINS]
+   JOINTS     = 5
+   KINEMATICS = trivkinsplus coordinates=XYYZ extrajoints=1
+
+The extra joints do not participate in kinematics calculations but
+can be managed using hal components for single-joint motion control.
+
+Use of an extra joint requires a motion planner (typically limit3) and a motor
+controller (typically a step generator or a pid-motor-encoder setup).
+
+Hal pins and a hal update function are provided for each extra joint.
+The pins and typical connections for an extra joint N are:
+
+   bit   IN  \fBtrivkinsplus.N.homed\fR         <= joint.N.homed
+   float IN  \fBtrivkinsplus.N.prehome-cmd\fR   <= joint.N.motor-pos-cmd
+   float OUT \fBtrivkinsplus.N.motor-pos-fb\fR  => joint.N.motor-pos-fb
+   float IN  \fBtrivkinsplus.N.motor-offset\fR  <= joint.N.motor-offset
+
+   float IN  \fBtrivkinsplus.N.posthome-cmd\fR  <= motion_planner_output
+   float OUT \fBtrivkinsplus.N.motor-pos-cmd\fR => motor_controller_command
+   float IN  \fBtrivkinsplus.N.prehome-fb\fR    <= motor_controller_feedback
+
+The prehome-cmd,fb pins are used to complete the positioning loop
+for homing; homing establishes the motor-offset value and allows
+a transition from joint mode to world (coordinated) mode when all
+joints are homed.
+
+The update function must be addf'd to a thread, example:
+   addf \fBtrivkinsplus.extrajoints.update\fR servo-thread
+
 
 .SS corexykins \- CoreXY Kinematics
 .TP

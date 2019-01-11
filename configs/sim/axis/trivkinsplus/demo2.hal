@@ -1,0 +1,57 @@
+# configure trivkinsplus kinematics for configuration
+# made with [HAL]HALFILE=basic_sim.tcl for joint4
+# (this config *simulates* home switches)
+
+#-----------------------------------------------------------
+# break conventional signal for pos-cmd and insert
+# the trivkinsplus component:
+delsig J4:pos-cmd
+net J4:prehome-cmd <= joint.4.motor-pos-cmd
+net J4:prehome-cmd => trivkinsplus.4.prehome-cmd
+
+# motor controller command:
+net J4:pos-cmd <= trivkinsplus.4.motor-pos-cmd
+net J4:pos-cmd => J4_pid.command
+
+#-----------------------------------------------------------
+# break conventional signal for pos-fb and insert
+# the trivkinsplus component:
+delsig J4:pos-fb
+net J4:motor-pos-fb <= trivkinsplus.4.motor-pos-fb
+net J4:motor-pos-fb => joint.4.motor-pos-fb
+
+# motor controller feedback:
+net J4:prehome-fb <= J4_mux.out
+net J4:prehome-fb => J4_mux.in0
+net J4:prehome-fb => J4_switch.cur-pos
+net J4:prehome-fb => J4_vel.in
+net J4:prehome-fb => trivkinsplus.4.prehome-fb
+
+#-----------------------------------------------------------
+# controls,offsets for extra joints
+net J4:homed <= joint.4.homed
+net J4:homed => trivkinsplus.4.homed
+
+net J4:motor-offset <= joint.4.motor-offset
+net J4:motor-offset => trivkinsplus.4.motor-offset
+#-----------------------------------------------------------
+# the trivkinsplus kinematics module is not called during homing
+# so the provied function must be addf'ed to the appropriate
+# thread:
+addf trivkinsplus.extrajoints.update servo-thread
+#-----------------------------------------------------------
+
+# use limit3 for motion planning:
+loadrt limit3 names=j4.limit3
+
+# These constraints apply to homing managed by
+# LinuxCNC and post-homing managed by the limit3 component:
+setp j4.limit3.min    [JOINT_4]MIN_LIMIT
+setp j4.limit3.max    [JOINT_4]MAX_LIMIT
+setp j4.limit3.maxv   [JOINT_4]MAX_VELOCITY
+setp j4.limit3.maxa   [JOINT_4]MAX_ACCELERATION
+
+addf j4.limit3 servo-thread
+
+net  J4:out <= j4.limit3.out
+net  J4:out => trivkinsplus.4.posthome-cmd

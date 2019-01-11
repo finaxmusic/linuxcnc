@@ -3442,7 +3442,8 @@ root_window.tk.call("setup_menu_accel", widgets.unhomemenu, "end", _("Unhome All
 
 kinsmodule=inifile.find("KINS", "KINEMATICS")
 kins_is_trivkins = False
-if kinsmodule.split()[0] == "trivkins":
+if (  (kinsmodule.split()[0] == "trivkins") \
+   or (kinsmodule.split()[0] == "trivkinsplus")):
     kins_is_trivkins = True
     trivkinscoords = "XYZABCUVW"
     for item in kinsmodule.split():
